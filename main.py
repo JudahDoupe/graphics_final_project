@@ -1,8 +1,11 @@
 import sys
+import pygame
 import numpy as np
 
 from OpenGL.GL import *
+from OpenGL.GLU import *
 from OpenGL.GLUT import *
+from pygame.locals import *
 
 from OpenGL.arrays import vbo
 
@@ -19,55 +22,40 @@ void main() {
 }"""
 
 
-myvbo = vbo.VBO(np.array( [
+vertexBuffer = vbo.VBO(np.array( [
             [ 0, 1, 0],
             [-1,-1, 0],
             [ 1,-1, 1],
         ],'f'))
 
-def display():
+
+def draw():
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
     glLoadIdentity()
     glUseProgram(program)
 
     try:
-        myvbo.bind()
+        vertexBuffer.bind()
         try:
             glEnableClientState(GL_VERTEX_ARRAY);
             # glVertexPointer( size , type , stride , pointer )
-            glVertexPointer(3, GL_FLOAT, 12, myvbo )
+            glVertexPointer(3, GL_FLOAT, 12, vertexBuffer )
             # glDrawArrays( mode , first, count )
             glDrawArrays(GL_TRIANGLES, 0, 9)
         finally:
-            myvbo.unbind()
+            vertexBuffer.unbind()
             glDisableClientState(GL_VERTEX_ARRAY);
     finally:
         glUseProgram( 0 )
 
-    glutSwapBuffers()
+    pygame.display.flip()
+    pygame.time.wait(10)
 
-def reshape(width, height):
-    glViewport(0, 0, width, height)
 
-def keyboard(key, x, y):
-    print(key)
-    # press space key to exit
-    if key == b' ':
-        sys.exit( )
-
-def idle():
-    glutPostRedisplay()
-
-if __name__ == '__main__':
-    glutInit()
-
-    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH)
-    glutCreateWindow('Hello world!')
-    glutReshapeWindow(512, 512)
-    glutReshapeFunc(reshape)
-    glutDisplayFunc(display)
-    glutIdleFunc(idle)
-    glutKeyboardFunc(keyboard)
+def main():
+    pygame.init()
+    display = (800,600)
+    pygame.display.set_mode(display, DOUBLEBUF|OPENGL)
 
     global program
 
@@ -95,4 +83,12 @@ if __name__ == '__main__':
     glDetachShader(program, vertex)
     glDetachShader(program, fragment)
 
-    glutMainLoop()
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                quit()
+
+        draw()
+
+main()
