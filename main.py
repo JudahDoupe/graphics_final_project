@@ -9,7 +9,7 @@ from helperClasses import *
 
 red = [1, 0.2, 0.3, 0]
 green = [0.2, 1, 0.3, 0]
-blue = [0.4, 0.1, 1, 0]
+blue = [0.4, 0.1, 1, 0.5]
 
 vertex_code = """
 attribute vec2 a_position;
@@ -47,12 +47,11 @@ def draw():
     glUseProgram(program)
 
     for shape in Shape.all_shapes:
-        print("butts")
-        buffer = shape.shape_to_vbo()
-        buffer.bind()
+        position_buffer = shape.pos_vbo()
+        position_buffer.bind()
         glEnableClientState(GL_VERTEX_ARRAY);
-        glVertexPointer(3, GL_FLOAT, 4, vertexBuffer ) # glVertexPointer( size , type , stride , pointer )
-    glDrawArrays(GL_TRIANGLES, 0, 9) # glDrawArrays( mode , first, count )
+        glVertexPointer(2, GL_FLOAT, 0, position_buffer ) # glVertexPointer( size , type , stride , pointer )
+        glDrawArrays(GL_TRIANGLES, 0, shape.num_tris() * 3 * 3) # glDrawArrays( mode , first, count )
 
     pygame.display.flip()
     pygame.time.wait(10)
@@ -94,7 +93,7 @@ def main():
     setup()
 
     square = Shape()
-    square.become_rect(5,5,blue)
+    square.become_rect(1,1,blue)
 
     while True:
         for event in pygame.event.get():

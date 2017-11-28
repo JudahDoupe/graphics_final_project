@@ -1,5 +1,6 @@
 import sys
 import pygame
+import numpy as np
 
 from OpenGL.GL import *
 from pygame.locals import *
@@ -9,9 +10,6 @@ class Vertex:
     def __init__(self, pos, color):
         self.position = [pos]
         self.color = [color]
-
-    def vert_to_array(self):  #Turns the vertex's x, y into one list to get parsed later for the buffer
-        return self.position + self.color
         
     def set_pos(self, pos): 
         self.position = pos
@@ -31,11 +29,14 @@ class Triangle:
         self.v2 = vert_positions[1]
         self.v3 = vert_positions[2]
         
-    def tri_to_array(self):  #Turns the triangle's x, y, z into one list to get parsed later for the buffer
-        return self.v1.vert_to_array() + self.v2.vert_to_array() + self.v3.vert_to_array()
+    def get_verts(self):
+        return [self.v1,self.v2,self.v3]
         
-    def get_tri_verts(self):
-        return [self.v1, self.v2, self.v3]
+    def get_verts_pos(self):
+        return self.v1.get_pos() + self.v2.get_pos() + self.v3.get_pos()
+        
+    def get_verts_color(self):
+        return self.v1.get_color() + self.v2.get_color() + self.v3.get_color()
 
 class Shape:
     all_shapes = []
@@ -56,11 +57,17 @@ class Shape:
                 
         self.triangles = [t1,t2]
         
-    def shape_to_vbo(self):
+    def pos_vbo(self):
         data = []
         for tri in self.triangles:
-            data.append(tri.tri_to_array())
-        return vbo.VBO(data,'f')
+            data.append(tri.get_verts_pos())
+        return vbo.VBO(np.array(data,'f'))
+        
+    def color_vbo(self):
+        data = []
+        for tri in self.triangles:
+            data.append(tri.get_verts_color())
+        return vbo.VBO(np.array(data,'f'))
     
     def num_tris(self):
-        return len(triangles)
+        return len(self.triangles)
