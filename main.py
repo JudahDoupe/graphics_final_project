@@ -13,32 +13,26 @@ blue = [0.4, 0.1, 1, 0.5]
 
 vertex_code = """
 attribute vec2 a_position;
-uniform mat3 u_matrix;
+attribute vec4 a_color;
+
+varying vec4 v_color;
 
 void main()
 {
-    vec2 xy = (u_matrix * vec3(a_position, 1)).xy;
-    gl_Position = vec4(xy, 0, 1);
+    gl_Position = vec4(a_position, 0, 1);
+    v_color = a_color;
 }
 """
 
 fragment_code = """
 precision mediump float;
-
-uniform vec4 u_color;
+varying vec4 v_color;
 
 void main()
 {
-    gl_FragColor = u_color;
+    gl_FragColor = v_color;
 }
 """
-
-
-vertexBuffer = vbo.VBO(np.array( [
-            [ 0, 1, 0],
-            [-1,-1, 0],
-            [ 1,-1, 1],
-        ],'f'))
 
 
 def draw():
@@ -46,12 +40,21 @@ def draw():
     glLoadIdentity()
     glUseProgram(program)
 
+
     for shape in Shape.all_shapes:
         position_buffer = shape.pos_vbo()
         position_buffer.bind()
-        glEnableClientState(GL_VERTEX_ARRAY);
-        glVertexPointer(2, GL_FLOAT, 0, position_buffer ) # glVertexPointer( size , type , stride , pointer )
-        glDrawArrays(GL_TRIANGLES, 0, shape.num_tris() * 3 * 3) # glDrawArrays( mode , first, count )
+        position_loc = glGetAttribLocation(program, 'a_position')
+        glEnableVertexAttribArray(position_loc);
+        glVertexAttribPointer(position_loc, 2, GL_FLOAT, False, 0, position_buffer )
+
+        color_buffer = shape.color_vbo()
+        color_buffer.bind()
+        color_loc = glGetAttribLocation(program, 'a_color')
+        glEnableVertexAttribArray(color_loc);
+        glVertexAttribPointer(color_loc, 4, GL_FLOAT, False, 0, color_buffer )
+
+        glDrawArrays(GL_TRIANGLES, 0, shape.num_tris() * 3)
 
     pygame.display.flip()
     pygame.time.wait(10)
@@ -83,10 +86,6 @@ def setup():
 
     # Build program
     glLinkProgram(program)
-
-    # Get rid of shaders (no more needed)
-    glDetachShader(program, vertex)
-    glDetachShader(program, fragment)
 
 
 def main():
