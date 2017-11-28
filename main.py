@@ -1,11 +1,15 @@
 import sys
 import pygame
 import numpy as np
-import helperClasses.py
 
 from OpenGL.GL import *
 from pygame.locals import *
 from OpenGL.arrays import vbo
+from helperClasses import *
+
+red = [1, 0.2, 0.3, 0]
+green = [0.2, 1, 0.3, 0]
+blue = [0.4, 0.1, 1, 0]
 
 vertex_code = """
 attribute vec2 a_position;
@@ -42,9 +46,12 @@ def draw():
     glLoadIdentity()
     glUseProgram(program)
 
-    vertexBuffer.bind()
-    glEnableClientState(GL_VERTEX_ARRAY);
-    glVertexPointer(3, GL_FLOAT, 12, vertexBuffer ) # glVertexPointer( size , type , stride , pointer )
+    for shape in Shape.all_shapes:
+        print("butts")
+        buffer = shape.shape_to_vbo()
+        buffer.bind()
+        glEnableClientState(GL_VERTEX_ARRAY);
+        glVertexPointer(3, GL_FLOAT, 4, vertexBuffer ) # glVertexPointer( size , type , stride , pointer )
     glDrawArrays(GL_TRIANGLES, 0, 9) # glDrawArrays( mode , first, count )
 
     pygame.display.flip()
@@ -85,6 +92,9 @@ def setup():
 
 def main():
     setup()
+
+    square = Shape()
+    square.become_rect(5,5,blue)
 
     while True:
         for event in pygame.event.get():
