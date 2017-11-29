@@ -91,8 +91,14 @@ def setup():
 def main():
     setup()
 
-    square = Shape()
-    square.become_rect(1,1,blue)
+    square1 = Shape()
+    square1.become_rect(1,1,red)
+
+    square2 = Shape()
+    square2.become_rect(0.5,0.5,green)
+
+    square3 = Shape()
+    square3.become_rect(0.1,0.1,blue)
 
     while True:
         for event in pygame.event.get():
