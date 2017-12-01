@@ -68,22 +68,22 @@ class Shape:
         right_norm = [1,0]
         left_norm = [-1,0]
 
-        v1 = Vertex(ul_pos, up_norm, color)
+        v1 = Vertex(ul_pos, up_norm, color)       #left
         v2 = Vertex(ur_pos, up_norm, color)
         v3 = Vertex(c_pos, [0,0], color)
         t1 = Triangle([v1,v2,v3])
 
-        v4 = Vertex(ur_pos, right_norm, color)
+        v4 = Vertex(ur_pos, right_norm, color)    #down
         v5 = Vertex(lr_pos, right_norm, color)
         v6 = Vertex(c_pos, [0,0], color)
         t2 = Triangle([v4,v5,v6])
 
-        v7 = Vertex(lr_pos, down_norm, color)
+        v7 = Vertex(lr_pos, down_norm, color)     #right
         v8 = Vertex(ll_pos, down_norm, color)
         v9 = Vertex(c_pos, [0,0], color)
         t3 = Triangle([v7,v8,v9])
 
-        v10 = Vertex(ul_pos, left_norm, color)
+        v10 = Vertex(ul_pos, left_norm, color)    #up
         v11 = Vertex(ll_pos, left_norm, color)
         v12 = Vertex(c_pos, [0,0], color)
         t4 = Triangle([v10,v11,v12])
