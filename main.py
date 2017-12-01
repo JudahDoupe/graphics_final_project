@@ -2,6 +2,7 @@ import sys
 import pygame
 import numpy as np
 
+from math import sin, cos
 from OpenGL.GL import *
 from pygame.locals import *
 from OpenGL.arrays import vbo
@@ -59,7 +60,7 @@ void main()
 """
 
 
-def draw():
+def draw(dir_light_dir):
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
     glLoadIdentity()
     glUseProgram(program)
@@ -69,10 +70,11 @@ def draw():
     glUniform2f(resolutionLocation, w, h)
 
     directionalLightDirectionLocation = glGetUniformLocation(program, "u_directionalLightDirection")
-    glUniform2f(directionalLightDirectionLocation, 0.7, -0.3)
+    glUniform2f(directionalLightDirectionLocation, sin(dir_light_dir), cos(dir_light_dir))
 
     pointLightPositionLocation = glGetUniformLocation(program, "u_pointLightPosition")
     glUniform2f(pointLightPositionLocation, 400, 0)
+
 
     for shape in Shape.all_shapes:
         position_buffer = shape.pos_vbo()
@@ -130,8 +132,9 @@ def setup():
     glLinkProgram(program)
 
 
-def main():
-    setup()
+def generate_elements():
+    dir_light = "dir_light"
+    element_list = [dir_light]  #Add any elements, lights, shapes etc. into this array
 
     square1 = Shape()
     square1.become_rect(100,100,red)
@@ -145,15 +148,56 @@ def main():
     square3.become_rect(25,25,blue)
     square3.set_transform([500,300])
 
+    return element_list
+
+
+def draw_gui():
+    return
+
+
+def main():
+    setup()
+
+    element_list = generate_elements()
+
+    #pygame stuff
+    dir_var = 0
+    selected_element_id = 0
+    selected_element = element_list[selected_element_id]
+
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 quit()
             if event.type == pygame.KEYDOWN:
-                if event.key == "K_ESCAPE":
+                if event.key == K_ESCAPE:
                     pygame.quit()
                     quit()
-        draw()
+                elif event.key == K_TAB:
+                    if selected_element_id == len(element_list):
+                        selected_element_id = 0
+                    else:
+                        selected_element_id += 1
+                    selected_element = element_list[selected_element_id]
+        key = pygame.key.get_pressed()
+        if selected_element == "dir_light":
+            if key[K_RIGHT]:
+                dir_var -=0.2
+                dir_var = dir_var % 6.2
+            elif key[K_LEFT]:
+                dir_var += 0.2
+                dir_var = dir_var % 6.2
+        else:
+            if key[K_RIGHT]:
+                selected_element.set_transform(selected_element.get_transform()[0] + 1, selected_element.get_transform()[1])
+            elif key[K_LEFT]:
+                selected_element.set_transform(selected_element.get_transform()[0] - 1, selected_element.get_transform()[1])
+            elif key[K_UP]:
+                selected_element.set_transform(selected_element.get_transform()[0], selected_element.get_transform()[1] + 1)
+            elif key[K_DOWN]:
+                selected_element.set_transform(selected_element.get_transform()[0], selected_element.get_transform()[1] - 1)
+        draw(dir_var)
+
 
 main()
