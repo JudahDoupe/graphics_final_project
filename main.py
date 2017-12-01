@@ -112,28 +112,43 @@ def setup():
     glLinkProgram(program)
 
 
-def main():
-    setup()
-
+def generate_elements():
+    dir_light = "dir_light"
+    element_list = [dir_light]  #Add any elements, lights, shapes etc. into this array
+    
     square1 = Shape()
     square1.become_rect(1,1,red)
     square1.set_transform([-0.5,-0.5])
+    element_list.append(square1)
 
     square2 = Shape()
     square2.become_rect(0.5,0.5,green)
     square2.set_transform([-0.2,0])
-
+    element_list.append(square2)
+        
     square3 = Shape()
     square3.become_rect(0.75,0.75,blue)
     square3.set_transform([0.3,0.25])
+    element_list.append(square3)
+    
+    return element_list
+    
+    
+def draw_gui():
+    return
+    
+    
+def main():
+    setup()
+    
+    element_list = generate_elements()
     
     #pygame stuff
     dir_var = 0
-    press_hold_time = 50
-    Clock = pygame.time.Clock()
+    selected_element_id = 0
+    selected_element = element_list[selected_element_id]
 
     while True:
-        Clock.tick()
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
@@ -142,13 +157,30 @@ def main():
                 if event.key == K_ESCAPE:
                     pygame.quit()
                     quit()
+                elif event.key == K_TAB:
+                    if selected_element_id == len(element_list):
+                        selected_element_id = 0
+                    else:
+                        selected_element_id += 1
+                    selected_element = element_list[selected_element_id]
         key = pygame.key.get_pressed()
-        if key[K_RIGHT]:
-            dir_var -=0.2
-            dir_var = dir_var % 6.2
-        elif key[K_LEFT]:
-            dir_var += 0.2
-            dir_var = dir_var % 6.2
+        if selected_element == "dir_light":
+            if key[K_RIGHT]:
+                dir_var -=0.2
+                dir_var = dir_var % 6.2
+            elif key[K_LEFT]:
+                dir_var += 0.2
+                dir_var = dir_var % 6.2
+        else:
+            if key[K_RIGHT]:
+                selected_element.set_transform(selected_element.get_transform()[0] + 1, selected_element.get_transform()[1])
+            elif key[K_LEFT]:
+                selected_element.set_transform(selected_element.get_transform()[0] - 1, selected_element.get_transform()[1])
+            elif key[K_UP]:
+                selected_element.set_transform(selected_element.get_transform()[0], selected_element.get_transform()[1] + 1)
+            elif key[K_DOWN]:
+                selected_element.set_transform(selected_element.get_transform()[0], selected_element.get_transform()[1] - 1)
         draw(dir_var)
+        
 
 main()
