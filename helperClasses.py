@@ -64,14 +64,14 @@ class Shape:
         c_pos = [length/2.0, -height/2.0]
 
 
-        v1 = Vertex(ul_pos, [-0.5,0.5], color)     #right
-        v2 = Vertex(ur_pos, [0.5,0.5], color)
-        v3 = Vertex(ll_pos, [-0.5,-0.5], color)
+        v1 = Vertex(ul_pos, [-0.5 , 0.5] , color)     #right
+        v2 = Vertex(ur_pos, [0.5, 0.5], color)
+        v3 = Vertex(ll_pos, [-0.5, -0.5], color)
         t1 = Triangle([v1,v2,v3])
 
-        v4 = Vertex(ur_pos, [0.5,0.5], color)    #up
-        v5 = Vertex(lr_pos, [0.5,-0.5], color)
-        v6 = Vertex(ll_pos, [-0.5,-0.5], color)
+        v4 = Vertex(ur_pos, [0.5, 0.5], color)    #up
+        v5 = Vertex(lr_pos, [0.5, -0.5], color)
+        v6 = Vertex(ll_pos, [-0.5, -0.5], color)
         t2 = Triangle([v4,v5,v6])
 
 

@@ -123,7 +123,7 @@ def main():
     square2.set_transform([-0.2,0])
 
     square3 = Shape()
-    square3.become_rect(0.1,0.1,blue)
+    square3.become_rect(0.75,0.75,blue)
     square3.set_transform([0.3,0.25])
 
     while True:
