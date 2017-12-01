@@ -51,7 +51,7 @@ def draw():
     glUseProgram(program)
     
     reverseLightDirectionLocation = glGetUniformLocation(program, "u_reverseLightDirection")
-    glUniform2f(reverseLightDirectionLocation, -0.6, 0.4)
+    glUniform2f(reverseLightDirectionLocation, -1, 0)
 
     for shape in Shape.all_shapes:
         position_buffer = shape.pos_vbo()
