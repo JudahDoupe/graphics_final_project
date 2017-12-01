@@ -16,12 +16,14 @@ attribute vec2 a_position;
 attribute vec4 a_color;
 attribute vec2 a_normal;
 
+uniform vec2 u_translation;
+
 varying vec4 v_color;
 varying vec2 v_normal;
 
 void main()
 {
-    gl_Position = vec4(a_position, 0, 1);
+    gl_Position = vec4(a_position + u_translation, 0, 1);
     v_color = a_color;
     v_normal = a_normal;
 }
@@ -37,9 +39,9 @@ varying vec2 v_normal;
 
 void main()
 {
-    //vec2 normal = normalize(v_normal);
- 
-    float light = max(dot(v_normal, u_reverseLightDirection),.2);
+    vec2 normal = normalize(v_normal);
+
+    float light = max(dot(v_normal, u_reverseLightDirection),.1);
     gl_FragColor = v_color * light;
 }
 """
@@ -49,7 +51,7 @@ def draw():
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
     glLoadIdentity()
     glUseProgram(program)
-    
+
     reverseLightDirectionLocation = glGetUniformLocation(program, "u_reverseLightDirection")
     glUniform2f(reverseLightDirectionLocation, -1, 0)
 
@@ -65,12 +67,15 @@ def draw():
         color_loc = glGetAttribLocation(program, 'a_color')
         glEnableVertexAttribArray(color_loc)
         glVertexAttribPointer(color_loc, 4, GL_FLOAT, False, 0, color_buffer )
-        
+
         normal_buffer = shape.normal_vbo()
         normal_buffer.bind()
         normal_loc = glGetAttribLocation(program, 'a_normal')
         glEnableVertexAttribArray(normal_loc)
         glVertexAttribPointer(normal_loc, 2, GL_FLOAT, False, 0, normal_buffer )
+
+        normal_loc = glGetUniformLocation(program, 'u_translation')
+        glUniform2f(normal_loc, shape.get_transform()[0], shape.get_transform()[1],)
 
         glDrawArrays(GL_TRIANGLES, 0, shape.num_tris() * 3)
 
@@ -109,14 +114,17 @@ def setup():
 def main():
     setup()
 
-    #square1 = Shape()
-    #square1.become_rect(1,1,red)
+    square1 = Shape()
+    square1.become_rect(1,1,red)
+    square1.set_transform([-0.5,-0.5])
 
     square2 = Shape()
     square2.become_rect(0.5,0.5,green)
+    square2.set_transform([-0.2,0])
 
-    #square3 = Shape()
-    #square3.become_rect(0.1,0.1,blue)
+    square3 = Shape()
+    square3.become_rect(0.1,0.1,blue)
+    square3.set_transform([0.3,0.25])
 
     while True:
         for event in pygame.event.get():

@@ -52,7 +52,7 @@ class Shape:
     all_shapes = []
 
     def __init__(self):
-        self.pos = [0,0,0]
+        self.pos = [0,0]
         self.triangles = []
         self.all_shapes.append(self)
 
@@ -94,6 +94,12 @@ class Shape:
         for tri in self.triangles:
             data.append(tri.get_verts_normal())
         return vbo.VBO(np.array(data,'f'))
+
+    def get_transform(self):
+        return self.pos;
+
+    def set_transform(self, transform):
+        self.pos = transform
 
     def num_tris(self):
         return len(self.triangles)
