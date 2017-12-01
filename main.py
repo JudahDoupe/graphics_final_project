@@ -2,6 +2,7 @@ import sys
 import pygame
 import numpy as np
 
+from math import sin, cos
 from OpenGL.GL import *
 from pygame.locals import *
 from OpenGL.arrays import vbo
@@ -47,13 +48,13 @@ void main()
 """
 
 
-def draw():
+def draw(dir_light_dir):
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
     glLoadIdentity()
     glUseProgram(program)
 
     reverseLightDirectionLocation = glGetUniformLocation(program, "u_reverseLightDirection")
-    glUniform2f(reverseLightDirectionLocation, -1, 0)
+    glUniform2f(reverseLightDirectionLocation, sin(dir_light_dir), cos(dir_light_dir))
 
     for shape in Shape.all_shapes:
         position_buffer = shape.pos_vbo()
@@ -125,16 +126,29 @@ def main():
     square3 = Shape()
     square3.become_rect(0.75,0.75,blue)
     square3.set_transform([0.3,0.25])
+    
+    #pygame stuff
+    dir_var = 0
+    press_hold_time = 50
+    Clock = pygame.time.Clock()
 
     while True:
+        Clock.tick()
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 quit()
             if event.type == pygame.KEYDOWN:
-                if event.key == "K_ESCAPE":
+                if event.key == K_ESCAPE:
                     pygame.quit()
                     quit()
-        draw()
+        key = pygame.key.get_pressed()
+        if key[K_RIGHT]:
+            dir_var -=0.2
+            dir_var = dir_var % 6.2
+        elif key[K_LEFT]:
+            dir_var += 0.2
+            dir_var = dir_var % 6.2
+        draw(dir_var)
 
 main()
