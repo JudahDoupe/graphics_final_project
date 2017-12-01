@@ -58,10 +58,9 @@ class Shape:
 
     def become_rect(self, length, height, color):
         ul_pos = [0, 0]
-        ur_pos = [0, -height]
-        ll_pos = [length, 0]
-        lr_pos = [length, -height]
-        c_pos = [length/2.0, -height/2.0]
+        ur_pos = [length, 0]
+        ll_pos = [0, height]
+        lr_pos = [length, height]
 
 
         v1 = Vertex(ul_pos, [-0.5 , 0.5] , color)     #right
