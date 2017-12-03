@@ -13,49 +13,79 @@ green = [0.2, 1, 0.3, 0]
 blue = [0.3, 0.5, 1, 0]
 
 vertex_code = """
-attribute vec2 a_position;
-attribute vec4 a_color;
-attribute vec2 a_normal;
-
-uniform vec2 u_translation;
-uniform vec2 u_pointLightPosition;
 uniform vec2 u_resolution;
 
+attribute vec4 a_color;
+attribute vec2 a_positionP;
+attribute vec2 a_normalV;
+uniform vec2 u_translationV;
+
 varying vec4 v_color;
-varying vec2 v_normal;
-varying vec2 v_surfaceToLight;
+varying vec2 v_positionP;
+varying vec2 v_normalV;
+
+uniform vec2 u_directionalLightD;
+varying vec2 v_directionalLightReflectedD;
+
+uniform vec2 u_pointLightP;
+varying vec2 v_pointLightD;
+varying vec2 v_pointLightReflectedD;
 
 void main()
 {
-   vec2 newPos = a_position + u_translation;
-   vec2 clipSpace = (((newPos/ u_resolution) * 2 ) - 1 );
-   gl_Position = vec4(clipSpace , 0, 1);
+    vec2 positionP = a_positionP + u_translationV;
+    vec2 clipSpaceP = (((positionP/ u_resolution) * 2 ) - 1 );
 
     v_color = a_color;
-    v_normal = a_normal;
-    v_surfaceToLight = normalize(u_pointLightPosition - newPos);
+    v_positionP = clipSpaceP;
+    v_normalV = a_normalV;
+
+    v_directionalLightReflectedD = normalize(-1 * u_directionalLightD + 2 * dot(a_normalV,u_directionalLightD)  * a_normalV);
+
+    v_pointLightD = normalize(u_pointLightP - positionP);
+    v_pointLightReflectedD = normalize(-1 * v_pointLightD + 2 * dot(a_normalV,v_pointLightD)  * a_normalV);
+
+    gl_Position = vec4(clipSpaceP , 0, 1);
 }
 
 
 """
 
 fragment_code = """
-uniform vec2 u_directionalLightDirection;
-uniform vec2 u_pointLightPosition;
-
 precision mediump float;
 
 varying vec4 v_color;
-varying vec2 v_normal;
-varying vec2 v_surfaceToLight;
+varying vec2 v_positionP;
+varying vec2 v_normalV;
+
+uniform vec2 u_directionalLightD;
+varying vec2 v_directionalLightReflectedD;
+
+varying vec2 v_pointLightD;
+varying vec2 v_pointLightReflectedD;
 
 void main()
 {
-    float directionalLightFraction = max(dot(v_normal, u_directionalLightDirection * -1), 0);
-    float pointLightFraction = max(dot(v_normal, v_surfaceToLight ),0);
-    float lightFraction = 0.2 + directionalLightFraction + pointLightFraction;
 
-    gl_FragColor = v_color * lightFraction;
+    vec4 ambientLightColor = v_color * 0.2;
+
+    int specularExponent = 10;
+    vec4 specularCoefficient = vec4(1, 1, 1, 0);
+
+    gl_FragColor = ambientLightColor;
+
+    vec4 directionalLightColor = vec4(0.7, 0.7, 0.7, 0);
+    float directionalLightFraction = max(0,dot(v_normalV, u_directionalLightD));
+    vec4 directionalLightSpecular = specularCoefficient * pow( max( 0, dot( normalize(v_positionP), v_directionalLightReflectedD )), specularExponent);
+
+    gl_FragColor = gl_FragColor + directionalLightColor * (v_color + directionalLightSpecular) * directionalLightFraction;
+
+    vec4 pointLightColor = vec4(0.7, 0.7, 0.7, 0) ;
+    float pointLightFraction = max(0,dot(v_normalV, v_pointLightD));
+    vec4 pointLightSpecular = specularCoefficient * pow( max( 0, dot( normalize(v_positionP), v_pointLightReflectedD )), specularExponent);
+
+    gl_FragColor = gl_FragColor + pointLightColor * (v_color + pointLightSpecular) * pointLightFraction;
+
 }
 """
 
@@ -69,17 +99,17 @@ def draw(dir_light_dir):
     w, h = pygame.display.get_surface().get_size()
     glUniform2f(resolutionLocation, w, h)
 
-    directionalLightDirectionLocation = glGetUniformLocation(program, "u_directionalLightDirection")
+    directionalLightDirectionLocation = glGetUniformLocation(program, "u_directionalLightD")
     glUniform2f(directionalLightDirectionLocation, sin(dir_light_dir), cos(dir_light_dir))
 
-    pointLightPositionLocation = glGetUniformLocation(program, "u_pointLightPosition")
+    pointLightPositionLocation = glGetUniformLocation(program, "u_pointLightP")
     glUniform2f(pointLightPositionLocation, 400, 0)
 
 
     for shape in Shape.all_shapes:
         position_buffer = shape.pos_vbo()
         position_buffer.bind()
-        position_loc = glGetAttribLocation(program, 'a_position')
+        position_loc = glGetAttribLocation(program, 'a_positionP')
         glEnableVertexAttribArray(position_loc)
         glVertexAttribPointer(position_loc, 2, GL_FLOAT, False, 0, position_buffer )
 
@@ -91,11 +121,11 @@ def draw(dir_light_dir):
 
         normal_buffer = shape.normal_vbo()
         normal_buffer.bind()
-        normal_loc = glGetAttribLocation(program, 'a_normal')
+        normal_loc = glGetAttribLocation(program, 'a_normalV')
         glEnableVertexAttribArray(normal_loc)
         glVertexAttribPointer(normal_loc, 2, GL_FLOAT, False, 0, normal_buffer )
 
-        normal_loc = glGetUniformLocation(program, 'u_translation')
+        normal_loc = glGetUniformLocation(program, 'u_translationV')
         glUniform2f(normal_loc, shape.get_transform()[0], shape.get_transform()[1],)
 
         glDrawArrays(GL_TRIANGLES, 0, shape.num_tris() * 3)
