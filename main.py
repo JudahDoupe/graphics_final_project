@@ -60,7 +60,7 @@ void main()
 """
 
 
-def draw(dir_light_dir):
+def draw(dir_light_dir, plx, ply):
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
     glLoadIdentity()
     glUseProgram(program)
@@ -73,7 +73,7 @@ def draw(dir_light_dir):
     glUniform2f(directionalLightDirectionLocation, sin(dir_light_dir), cos(dir_light_dir))
 
     pointLightPositionLocation = glGetUniformLocation(program, "u_pointLightPosition")
-    glUniform2f(pointLightPositionLocation, 400, 0)
+    glUniform2f(pointLightPositionLocation, plx, ply)
 
 
     for shape in Shape.all_shapes:
@@ -108,8 +108,9 @@ def setup():
     global program
 
     pygame.init()
-    display = (800,600)
-    pygame.display.set_mode(display, DOUBLEBUF|OPENGL)
+    infoObject = pygame.display.Info()
+    res = (infoObject.current_w, infoObject.current_h)
+    surface = pygame.display.set_mode(res, DOUBLEBUF|OPENGL)
 
      # Request a program and shader slots from GPU
     program  = glCreateProgram()
@@ -130,38 +131,42 @@ def setup():
 
     # Build program
     glLinkProgram(program)
+    
+    return surface, res
 
 
 def generate_elements():
     dir_light = "dir_light"
-    element_list = [dir_light]  #Add any elements, lights, shapes etc. into this array
+    point_light = "point_light"
+    element_list = [dir_light, point_light]  #Add any elements, lights, shapes etc. into this array
 
     square1 = Shape()
     square1.become_rect(100,100,red)
     square1.set_transform([200,200])
+    element_list.append(square1)
 
     square2 = Shape()
     square2.become_rect(50,50,green)
     square2.set_transform([400,100])
+    element_list.append(square2)
 
     square3 = Shape()
     square3.become_rect(25,25,blue)
     square3.set_transform([500,300])
+    element_list.append(square3)
 
     return element_list
 
 
-def draw_gui():
-    return
-
-
 def main():
-    setup()
+    surface, res = setup()
 
     element_list = generate_elements()
 
     #pygame stuff
     dir_var = 0
+    plx = 400
+    ply = 20
     selected_element_id = 0
     selected_element = element_list[selected_element_id]
 
@@ -175,7 +180,8 @@ def main():
                     pygame.quit()
                     quit()
                 elif event.key == K_TAB:
-                    if selected_element_id == len(element_list):
+                    print(selected_element_id)
+                    if selected_element_id == len(element_list) - 1:
                         selected_element_id = 0
                     else:
                         selected_element_id += 1
@@ -188,6 +194,19 @@ def main():
             elif key[K_LEFT]:
                 dir_var += 0.2
                 dir_var = dir_var % 6.2
+        elif selected_element == "point_light":
+            if key[K_RIGHT]:
+                plx += 1
+                plx = plx % res[0]
+            elif key[K_LEFT]:
+                plx -= 1
+                plx = plx % res[0]
+            elif key[K_UP]:
+                ply -= 1
+                ply = ply % res[1]
+            elif key[K_DOWN]:
+                ply += 1
+                ply = ply % res[1]
         else:
             if key[K_RIGHT]:
                 selected_element.set_transform(selected_element.get_transform()[0] + 1, selected_element.get_transform()[1])
@@ -197,7 +216,7 @@ def main():
                 selected_element.set_transform(selected_element.get_transform()[0], selected_element.get_transform()[1] + 1)
             elif key[K_DOWN]:
                 selected_element.set_transform(selected_element.get_transform()[0], selected_element.get_transform()[1] - 1)
-        draw(dir_var)
+        draw(dir_var, plx, ply)
 
 
 main()
