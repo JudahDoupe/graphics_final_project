@@ -29,7 +29,7 @@ uniform vec2 u_directionalLightD[3];
 varying vec2 v_directionalLightReflectedD[3];
 
 uniform vec2 u_pointLightP[16];
-varying vec2 v_pointLightD[16];
+varying vec2 v_pointLightV[16];
 varying vec2 v_pointLightReflectedD[16];
 
 void main()
@@ -46,8 +46,8 @@ void main()
     }
 
     for (int i= 0; i < 16; i++){
-        v_pointLightD[i] = normalize(u_pointLightP[i] - positionP);
-        v_pointLightReflectedD[i] = normalize(-1 * v_pointLightD[i] + 2 * dot(a_normalV,v_pointLightD[i])  * a_normalV);
+        v_pointLightV[i] = u_pointLightP[i] - positionP;
+        v_pointLightReflectedD[i] = normalize(-1 * normalize(v_pointLightV[i]) + 2 * dot(a_normalV, normalize(v_pointLightV[i]))  * a_normalV);
     }
 
     gl_Position = vec4(clipSpaceP , 0, 1);
@@ -67,7 +67,7 @@ uniform vec2 u_directionalLightD[3];
 uniform float u_directionalLightIntensity[3];
 varying vec2 v_directionalLightReflectedD[3];
 
-varying vec2 v_pointLightD[16];
+varying vec2 v_pointLightV[16];
 uniform float u_pointLightIntensity[16];
 varying vec2 v_pointLightReflectedD[16];
 
@@ -90,10 +90,10 @@ void main()
     
     for (int i= 0; i < 16; i++){
         vec4 pointLightColor = vec4(0.7, 0.7, 0.7, 0);
-        float pointLightFraction = max(0,dot(v_normalV, v_pointLightD[i]));
+        float pointLightFraction = max(0,dot(v_normalV, normalize(v_pointLightV[i]))) / pow(length(v_pointLightV[i]),2) * 20000 * u_pointLightIntensity[i];
         vec4 pointLightSpecular = specularCoefficient * pow( max( 0, dot( normalize(v_positionP), v_pointLightReflectedD[i] )), specularExponent);
 
-        gl_FragColor = gl_FragColor + pointLightColor * (v_color + pointLightSpecular) * pointLightFraction * u_pointLightIntensity[i];
+        gl_FragColor = gl_FragColor + pointLightColor * (v_color + pointLightSpecular) * pointLightFraction;
     }
 }
 """
@@ -131,15 +131,8 @@ def setup():
 
 def generate_elements():
     #dir_light = DirectionalLight([0.5,0.5],white, 1)
-    point_light1 = PointLight([500,150],white,0.5)
-    point_light2 = PointLight([500,250],white,1)
-    point_light3 = PointLight([500,350],white,0.5)
-
-    square1 = Shape(100,100,red)
-    square1.set_position([200,200])
-
-    square3 = Shape(25,25,blue)
-    square3.set_position([500,300])
+    point_light1 = PointLight([250,250],white,1)
+    point_light2 = PointLight([750,250],white,1)
 
     for x in range(0, 1000, 100):
         floor = Shape(100,100,green)
@@ -149,11 +142,11 @@ def generate_elements():
         ceiling.set_position([x,0])
 
     for y in range(100, 500, 100):
-        floor = Shape(100,100,green)
-        floor.set_position([0,y])
+        left = Shape(100,100,green)
+        left.set_position([0,y])
 
-        ceiling = Shape(100,100,green)
-        ceiling.set_position([900,y])
+        right = Shape(100,100,green)
+        right.set_position([900,y])
 
 
     return Element.all_elements
@@ -178,7 +171,6 @@ def main():
                     pygame.quit()
                     quit()
                 elif event.key == K_TAB:
-                    print(selected_element_id)
                     selected_element_id = selected_element_id + 1 % len(element_list)
                     selected_element = element_list[selected_element_id]
         key = pygame.key.get_pressed()

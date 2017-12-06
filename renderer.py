@@ -72,7 +72,6 @@ def setup_dir_lights(program, dir_lights):
         intensities = intensities + [0]
         light_index += 1
 
-    print(intensities)
     glUniform2fv(directionLocation, 3, np.array(directions,'f'))
     glUniform1fv(intensityLocation, 3, np.array(intensities,'f'))
 
