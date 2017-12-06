@@ -57,21 +57,13 @@ class Shape(Element):
     all_shapes = []
 
     def __init__(self, length, height, color):
-        ul_pos = [0, 0]
-        ur_pos = [length, 0]
-        ll_pos = [0, height]
-        lr_pos = [length, height]
+        ul_vert = Vertex([0, 0], [-0.5 , -0.5] , color)
+        ur_vert = Vertex([length, 0], [0.5, -0.5], color)
+        ll_vert = Vertex([0, height], [-0.5, 0.5], color)
+        lr_vert = Vertex([length, height], [0.5, 0.5], color)
 
-
-        v1 = Vertex(ul_pos, [-0.5 , 0.5] , color)     #right
-        v2 = Vertex(ur_pos, [0.5, 0.5], color)
-        v3 = Vertex(ll_pos, [-0.5, -0.5], color)
-        t1 = Triangle([v1,v2,v3])
-
-        v4 = Vertex(ur_pos, [0.5, 0.5], color)    #up
-        v5 = Vertex(lr_pos, [0.5, -0.5], color)
-        v6 = Vertex(ll_pos, [-0.5, -0.5], color)
-        t2 = Triangle([v4,v5,v6])
+        t1 = Triangle([ul_vert,ur_vert,lr_vert])
+        t2 = Triangle([lr_vert,ll_vert,ul_vert])
 
         self.triangles = [t1,t2]
         self.position = [0,0]

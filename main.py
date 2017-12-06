@@ -69,7 +69,6 @@ varying vec2 v_pointLightReflectedD;
 
 void main()
 {
-
     vec4 ambientLightColor = v_color * 0.2;
 
     int specularExponent = 10;
@@ -124,8 +123,8 @@ def setup():
 
 
 def generate_elements():
-    dir_light = DirectionalLight([0.5,0.5],white, 1)
-    point_light = PointLight([300,300],white,1)
+    #dir_light = DirectionalLight([0.5,0.5],white, 1)
+    point_light = PointLight([500,250],white,1)
 
     square1 = Shape(100,100,red)
     square1.set_position([200,200])
@@ -133,9 +132,19 @@ def generate_elements():
     square3 = Shape(25,25,blue)
     square3.set_position([500,300])
 
-    for x in range(0, 2000, 100):
-        square = Shape(100,100,green)
-        square.set_position([x,0])
+    for x in range(0, 1000, 100):
+        floor = Shape(100,100,green)
+        floor.set_position([x,500])
+
+        ceiling = Shape(100,100,green)
+        ceiling.set_position([x,0])
+
+    for y in range(100, 500, 100):
+        floor = Shape(100,100,green)
+        floor.set_position([0,y])
+
+        ceiling = Shape(100,100,green)
+        ceiling.set_position([900,y])
 
 
     return Element.all_elements
@@ -173,13 +182,13 @@ def main():
                 selected_element.set_direction(dir_var)
         else:
             if key[K_RIGHT]:
-                selected_element.set_position([selected_element.get_position()[0] + 1, selected_element.get_position()[1]])
+                selected_element.set_position([selected_element.get_position()[0] + 3, selected_element.get_position()[1]])
             elif key[K_LEFT]:
-                selected_element.set_position([selected_element.get_position()[0] - 1, selected_element.get_position()[1]])
+                selected_element.set_position([selected_element.get_position()[0] - 3, selected_element.get_position()[1]])
             elif key[K_UP]:
-                selected_element.set_position([selected_element.get_position()[0], selected_element.get_position()[1] - 1])
+                selected_element.set_position([selected_element.get_position()[0], selected_element.get_position()[1] - 3])
             elif key[K_DOWN]:
-                selected_element.set_position([selected_element.get_position()[0], selected_element.get_position()[1] + 1])
+                selected_element.set_position([selected_element.get_position()[0], selected_element.get_position()[1] + 3])
 
         draw(program,Shape.all_shapes, DirectionalLight.all_dir_lights, PointLight.all_point_lights)
 
