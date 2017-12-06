@@ -2,15 +2,16 @@ import sys
 import pygame
 import numpy as np
 
-from math import sin, cos
 from OpenGL.GL import *
 from pygame.locals import *
 from OpenGL.arrays import vbo
 from helperClasses import *
+from renderer import *
 
 red = [1, 0.2, 0.3, 0]
 green = [0.2, 1, 0.3, 0]
 blue = [0.3, 0.5, 1, 0]
+white = [1, 1, 1, 0]
 
 vertex_code = """
 uniform vec2 u_resolution;
@@ -34,7 +35,7 @@ varying vec2 v_pointLightReflectedD;
 void main()
 {
     vec2 positionP = a_positionP + u_translationV;
-    vec2 clipSpaceP = (((positionP/ u_resolution) * 2 ) - 1 );
+    vec2 clipSpaceP = (((positionP/ u_resolution) * 2 ) - 1 ) * vec2(1, -1);
 
     v_color = a_color;
     v_positionP = clipSpaceP;
@@ -59,9 +60,11 @@ varying vec2 v_positionP;
 varying vec2 v_normalV;
 
 uniform vec2 u_directionalLightD;
+uniform float u_directionalLightIntensity;
 varying vec2 v_directionalLightReflectedD;
 
 varying vec2 v_pointLightD;
+uniform float u_pointLightIntensity;
 varying vec2 v_pointLightReflectedD;
 
 void main()
@@ -78,61 +81,16 @@ void main()
     float directionalLightFraction = max(0,dot(v_normalV, u_directionalLightD));
     vec4 directionalLightSpecular = specularCoefficient * pow( max( 0, dot( normalize(v_positionP), v_directionalLightReflectedD )), specularExponent);
 
-    gl_FragColor = gl_FragColor + directionalLightColor * (v_color + directionalLightSpecular) * directionalLightFraction;
+    gl_FragColor = gl_FragColor + directionalLightColor * (v_color + directionalLightSpecular) * directionalLightFraction * u_directionalLightIntensity;
 
     vec4 pointLightColor = vec4(0.7, 0.7, 0.7, 0) ;
     float pointLightFraction = max(0,dot(v_normalV, v_pointLightD));
     vec4 pointLightSpecular = specularCoefficient * pow( max( 0, dot( normalize(v_positionP), v_pointLightReflectedD )), specularExponent);
 
-    gl_FragColor = gl_FragColor + pointLightColor * (v_color + pointLightSpecular) * pointLightFraction;
+    gl_FragColor = gl_FragColor + pointLightColor * (v_color + pointLightSpecular) * pointLightFraction * u_pointLightIntensity;
 
 }
 """
-
-
-def draw(dir_light_dir, plx, ply):
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-    glLoadIdentity()
-    glUseProgram(program)
-
-    resolutionLocation = glGetUniformLocation(program, "u_resolution")
-    w, h = pygame.display.get_surface().get_size()
-    glUniform2f(resolutionLocation, w, h)
-
-    directionalLightDirectionLocation = glGetUniformLocation(program, "u_directionalLightD")
-    glUniform2f(directionalLightDirectionLocation, sin(dir_light_dir), cos(dir_light_dir))
-
-    pointLightPositionLocation = glGetUniformLocation(program, "u_pointLightP")
-    glUniform2f(pointLightPositionLocation, plx, ply)
-
-
-    for shape in Shape.all_shapes:
-        position_buffer = shape.pos_vbo()
-        position_buffer.bind()
-        position_loc = glGetAttribLocation(program, 'a_positionP')
-        glEnableVertexAttribArray(position_loc)
-        glVertexAttribPointer(position_loc, 2, GL_FLOAT, False, 0, position_buffer )
-
-        color_buffer = shape.color_vbo()
-        color_buffer.bind()
-        color_loc = glGetAttribLocation(program, 'a_color')
-        glEnableVertexAttribArray(color_loc)
-        glVertexAttribPointer(color_loc, 4, GL_FLOAT, False, 0, color_buffer )
-
-        normal_buffer = shape.normal_vbo()
-        normal_buffer.bind()
-        normal_loc = glGetAttribLocation(program, 'a_normalV')
-        glEnableVertexAttribArray(normal_loc)
-        glVertexAttribPointer(normal_loc, 2, GL_FLOAT, False, 0, normal_buffer )
-
-        normal_loc = glGetUniformLocation(program, 'u_translationV')
-        glUniform2f(normal_loc, shape.get_transform()[0], shape.get_transform()[1],)
-
-        glDrawArrays(GL_TRIANGLES, 0, shape.num_tris() * 3)
-
-    pygame.display.flip()
-    pygame.time.wait(10)
-
 
 def setup():
     global program
@@ -161,31 +119,26 @@ def setup():
 
     # Build program
     glLinkProgram(program)
-    
+
     return surface, res
 
 
 def generate_elements():
-    dir_light = "dir_light"
-    point_light = "point_light"
-    element_list = [dir_light, point_light]  #Add any elements, lights, shapes etc. into this array
+    dir_light = DirectionalLight([0.5,0.5],white, 1)
+    point_light = PointLight([300,300],white,1)
 
-    square1 = Shape()
-    square1.become_rect(100,100,red)
-    square1.set_transform([200,200])
-    element_list.append(square1)
+    square1 = Shape(100,100,red)
+    square1.set_position([200,200])
 
-    square2 = Shape()
-    square2.become_rect(50,50,green)
-    square2.set_transform([400,100])
-    element_list.append(square2)
+    square3 = Shape(25,25,blue)
+    square3.set_position([500,300])
 
-    square3 = Shape()
-    square3.become_rect(25,25,blue)
-    square3.set_transform([500,300])
-    element_list.append(square3)
+    for x in range(0, 2000, 100):
+        square = Shape(100,100,green)
+        square.set_position([x,0])
 
-    return element_list
+
+    return Element.all_elements
 
 
 def main():
@@ -194,9 +147,6 @@ def main():
     element_list = generate_elements()
 
     #pygame stuff
-    dir_var = 0
-    plx = 400
-    ply = 20
     selected_element_id = 0
     selected_element = element_list[selected_element_id]
 
@@ -211,42 +161,29 @@ def main():
                     quit()
                 elif event.key == K_TAB:
                     print(selected_element_id)
-                    if selected_element_id == len(element_list) - 1:
-                        selected_element_id = 0
-                    else:
-                        selected_element_id += 1
+                    selected_element_id = selected_element_id + 1 % len(element_list)
                     selected_element = element_list[selected_element_id]
         key = pygame.key.get_pressed()
-        if selected_element == "dir_light":
+        if selected_element.element_type == "dir_light":
             if key[K_RIGHT]:
-                dir_var -=0.2
-                dir_var = dir_var % 6.2
+                dir_var = selected_element.get_direction_in_radians() - 0.2 % 6.2
+                selected_element.set_direction(dir_var)
             elif key[K_LEFT]:
-                dir_var += 0.2
-                dir_var = dir_var % 6.2
-        elif selected_element == "point_light":
-            if key[K_RIGHT]:
-                plx += 1
-                plx = plx % res[0]
-            elif key[K_LEFT]:
-                plx -= 1
-                plx = plx % res[0]
-            elif key[K_UP]:
-                ply -= 1
-                ply = ply % res[1]
-            elif key[K_DOWN]:
-                ply += 1
-                ply = ply % res[1]
+                dir_var = selected_element.get_direction_in_radians() + 0.2 % 6.2
+                selected_element.set_direction(dir_var)
         else:
             if key[K_RIGHT]:
-                selected_element.set_transform(selected_element.get_transform()[0] + 1, selected_element.get_transform()[1])
+                selected_element.set_position([selected_element.get_position()[0] + 1, selected_element.get_position()[1]])
             elif key[K_LEFT]:
-                selected_element.set_transform(selected_element.get_transform()[0] - 1, selected_element.get_transform()[1])
+                selected_element.set_position([selected_element.get_position()[0] - 1, selected_element.get_position()[1]])
             elif key[K_UP]:
-                selected_element.set_transform(selected_element.get_transform()[0], selected_element.get_transform()[1] + 1)
+                selected_element.set_position([selected_element.get_position()[0], selected_element.get_position()[1] - 1])
             elif key[K_DOWN]:
-                selected_element.set_transform(selected_element.get_transform()[0], selected_element.get_transform()[1] - 1)
-        draw(dir_var, plx, ply)
+                selected_element.set_position([selected_element.get_position()[0], selected_element.get_position()[1] + 1])
+
+        draw(program,Shape.all_shapes, DirectionalLight.all_dir_lights, PointLight.all_point_lights)
 
 
 main()
+
+

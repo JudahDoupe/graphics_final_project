@@ -2,6 +2,7 @@ import sys
 import pygame
 import numpy as np
 
+from math import sin, cos, atan2
 from OpenGL.GL import *
 from pygame.locals import *
 from OpenGL.arrays import vbo
@@ -48,15 +49,14 @@ class Triangle:
     def get_verts_normal(self):
         return self.v1.get_norm() + self.v2.get_norm() + self.v3.get_norm()
 
-class Shape:
+class Element:
+    all_elements = []
+
+
+class Shape(Element):
     all_shapes = []
 
-    def __init__(self):
-        self.pos = [0,0]
-        self.triangles = []
-        self.all_shapes.append(self)
-
-    def become_rect(self, length, height, color):
+    def __init__(self, length, height, color):
         ul_pos = [0, 0]
         ur_pos = [length, 0]
         ll_pos = [0, height]
@@ -73,8 +73,11 @@ class Shape:
         v6 = Vertex(ll_pos, [-0.5, -0.5], color)
         t2 = Triangle([v4,v5,v6])
 
-
         self.triangles = [t1,t2]
+        self.position = [0,0]
+        self.all_shapes.append(self)
+        self.all_elements.append(self)
+        self.element_type = "shape"
 
     def pos_vbo(self):
         data = []
@@ -94,11 +97,62 @@ class Shape:
             data.append(tri.get_verts_normal())
         return vbo.VBO(np.array(data,'f'))
 
-    def get_transform(self):
-        return self.pos;
-
-    def set_transform(self, transform):
-        self.pos = transform
-
     def num_tris(self):
         return len(self.triangles)
+
+    def get_position(self):
+        return self.position;
+
+    def set_position(self, position):
+        self.position = position
+
+
+class DirectionalLight(Element):
+    all_dir_lights = []
+
+    def __init__(self, direction, color, intensity):
+        self.direction = direction
+        self.all_dir_lights.append(self)
+        self.all_elements.append(self)
+        self.element_type = "dir_light"
+        self.color = color
+        self.intensity = intensity
+
+    def get_direction(self):
+        return self.direction;
+
+    def get_direction_in_radians(self):
+        return atan2(self.direction[1], self.direction[0])
+
+    def set_direction(self, angle_in_radians):
+        self.direction = [cos(angle_in_radians), sin(angle_in_radians)]
+
+    def get_intensity(self):
+        return self.intensity;
+
+    def set_intensity(self, intensity):
+        self.intensity = intensity
+
+
+class PointLight(Element):
+    all_point_lights = []
+
+    def __init__(self, position, color, intensity):
+        self.position = position
+        self.all_point_lights.append(self)
+        self.all_elements.append(self)
+        self.element_type = "point_light"
+        self.color = color
+        self.intensity = intensity
+
+    def get_position(self):
+        return self.position;
+
+    def set_position(self, position):
+        self.position = position
+
+    def get_intensity(self):
+        return self.intensity;
+
+    def set_intensity(self, intensity):
+        self.intensity = intensity
