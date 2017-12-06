@@ -25,12 +25,12 @@ varying vec4 v_color;
 varying vec2 v_positionP;
 varying vec2 v_normalV;
 
-uniform vec2 u_directionalLightD;
-varying vec2 v_directionalLightReflectedD;
+uniform vec2 u_directionalLightD[3];
+varying vec2 v_directionalLightReflectedD[3];
 
-uniform vec2 u_pointLightP;
-varying vec2 v_pointLightD;
-varying vec2 v_pointLightReflectedD;
+uniform vec2 u_pointLightP[16];
+varying vec2 v_pointLightD[16];
+varying vec2 v_pointLightReflectedD[16];
 
 void main()
 {
@@ -41,10 +41,14 @@ void main()
     v_positionP = clipSpaceP;
     v_normalV = a_normalV;
 
-    v_directionalLightReflectedD = normalize(-1 * u_directionalLightD + 2 * dot(a_normalV,u_directionalLightD)  * a_normalV);
+    for (int i= 0; i < 3; i++){
+        v_directionalLightReflectedD[i] = normalize(-1 * u_directionalLightD[i] + 2 * dot(a_normalV,u_directionalLightD[i])  * a_normalV);
+    }
 
-    v_pointLightD = normalize(u_pointLightP - positionP);
-    v_pointLightReflectedD = normalize(-1 * v_pointLightD + 2 * dot(a_normalV,v_pointLightD)  * a_normalV);
+    for (int i= 0; i < 16; i++){
+        v_pointLightD[i] = normalize(u_pointLightP[i] - positionP);
+        v_pointLightReflectedD[i] = normalize(-1 * v_pointLightD[i] + 2 * dot(a_normalV,v_pointLightD[i])  * a_normalV);
+    }
 
     gl_Position = vec4(clipSpaceP , 0, 1);
 }
@@ -59,13 +63,13 @@ varying vec4 v_color;
 varying vec2 v_positionP;
 varying vec2 v_normalV;
 
-uniform vec2 u_directionalLightD;
-uniform float u_directionalLightIntensity;
-varying vec2 v_directionalLightReflectedD;
+uniform vec2 u_directionalLightD[3];
+uniform float u_directionalLightIntensity[3];
+varying vec2 v_directionalLightReflectedD[3];
 
-varying vec2 v_pointLightD;
-uniform float u_pointLightIntensity;
-varying vec2 v_pointLightReflectedD;
+varying vec2 v_pointLightD[16];
+uniform float u_pointLightIntensity[16];
+varying vec2 v_pointLightReflectedD[16];
 
 void main()
 {
@@ -76,18 +80,21 @@ void main()
 
     gl_FragColor = ambientLightColor;
 
-    vec4 directionalLightColor = vec4(0.7, 0.7, 0.7, 0);
-    float directionalLightFraction = max(0,dot(v_normalV, u_directionalLightD));
-    vec4 directionalLightSpecular = specularCoefficient * pow( max( 0, dot( normalize(v_positionP), v_directionalLightReflectedD )), specularExponent);
+    for (int i= 0; i < 3; i++){
+        vec4 directionalLightColor = vec4(0.7, 0.7, 0.7, 0);
+        float directionalLightFraction = max(0,dot(v_normalV, u_directionalLightD[i]));
+        vec4 directionalLightSpecular = specularCoefficient * pow( max( 0, dot( normalize(v_positionP), v_directionalLightReflectedD[i] )), specularExponent);
 
-    gl_FragColor = gl_FragColor + directionalLightColor * (v_color + directionalLightSpecular) * directionalLightFraction * u_directionalLightIntensity;
+        gl_FragColor = gl_FragColor + directionalLightColor * (v_color + directionalLightSpecular) * directionalLightFraction * u_directionalLightIntensity[i];
+    }
+    
+    for (int i= 0; i < 16; i++){
+        vec4 pointLightColor = vec4(0.7, 0.7, 0.7, 0);
+        float pointLightFraction = max(0,dot(v_normalV, v_pointLightD[i]));
+        vec4 pointLightSpecular = specularCoefficient * pow( max( 0, dot( normalize(v_positionP), v_pointLightReflectedD[i] )), specularExponent);
 
-    vec4 pointLightColor = vec4(0.7, 0.7, 0.7, 0) ;
-    float pointLightFraction = max(0,dot(v_normalV, v_pointLightD));
-    vec4 pointLightSpecular = specularCoefficient * pow( max( 0, dot( normalize(v_positionP), v_pointLightReflectedD )), specularExponent);
-
-    gl_FragColor = gl_FragColor + pointLightColor * (v_color + pointLightSpecular) * pointLightFraction * u_pointLightIntensity;
-
+        gl_FragColor = gl_FragColor + pointLightColor * (v_color + pointLightSpecular) * pointLightFraction * u_pointLightIntensity[i];
+    }
 }
 """
 
@@ -124,7 +131,9 @@ def setup():
 
 def generate_elements():
     #dir_light = DirectionalLight([0.5,0.5],white, 1)
-    point_light = PointLight([500,250],white,1)
+    point_light1 = PointLight([500,150],white,0.5)
+    point_light2 = PointLight([500,250],white,1)
+    point_light3 = PointLight([500,350],white,0.5)
 
     square1 = Shape(100,100,red)
     square1.set_position([200,200])
