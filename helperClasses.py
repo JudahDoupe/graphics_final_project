@@ -70,6 +70,9 @@ class Shape(Element):
         self.all_shapes.append(self)
         self.all_elements.append(self)
         self.element_type = "shape"
+        
+    def is_light(self):
+        return False
 
     def pos_vbo(self):
         data = []
@@ -109,6 +112,9 @@ class DirectionalLight(Element):
         self.element_type = "dir_light"
         self.color = color
         self.intensity = intensity
+        
+    def is_light(self):
+        return True
 
     def get_direction(self):
         return self.direction;
@@ -136,6 +142,9 @@ class PointLight(Element):
         self.element_type = "point_light"
         self.color = color
         self.intensity = intensity
+        
+    def is_light(self):
+        return True
 
     def get_position(self):
         return self.position;
