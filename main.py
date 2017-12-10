@@ -39,7 +39,7 @@ def generate_elements():
 
 
 def main():
-    renderer = DefferedRenderer()
+    renderer = Renderer()
 
     element_list = generate_elements()
 
