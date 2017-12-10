@@ -57,7 +57,7 @@ def tuple_to_array(tuple):
 
 
 def main():
-    renderer = DeferredRenderer()
+    renderer = Renderer()
 
     element_list = generate_elements()
 
