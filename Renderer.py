@@ -86,7 +86,7 @@ class Renderer:
 
             gl_FragColor = gl_FragColor + directionalLightColor * (v_color + directionalLightSpecular) * directionalLightFraction * u_directionalLightIntensity[i];
         }
-        
+
         for (int i= 0; i < 16; i++){
             vec4 pointLightColor = vec4(0.7, 0.7, 0.7, 0);
             float pointLightFraction = max(0,dot(v_normalV, normalize(v_pointLightV[i]))) / pow(length(v_pointLightV[i]),2) * 20000 * u_pointLightIntensity[i];
@@ -160,6 +160,7 @@ class Renderer:
 
             translation_loc = glGetUniformLocation(self.program, 'u_translationV')
             glUniform2fv(translation_loc, 1, shape.get_position())
+
             glDrawArrays(GL_TRIANGLES, 0, shape.num_tris() * 3)
 
         pygame.display.flip()

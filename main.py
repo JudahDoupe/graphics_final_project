@@ -26,25 +26,25 @@ def generate_color(color):
         return (1 - random.uniform(0, bind_value), 1 - random.uniform(0, bind_value), 1 - random.uniform(0, bind_value), 0)
     else:
         return (0, 0, 0, 0)
-    
+
 
 def generate_elements():
-    #dir_light = DirectionalLight([0.5,0.5],white, 1)
-    point_light1 = PointLight([250,250],generate_color(white),1)
-    point_light2 = PointLight([750,250],generate_color(white),1)
+    #dir_light = DirectionalLight([0.4,0.6],generate_color(white), 1)
+    point_light = PointLight([250,250],generate_color(white),1)
+    spot_light = SpotLight([750,250], [0.0,1.0], generate_color(white),1)
 
     for x in range(0, 1000, 100):
-        floor = Shape(100,100,generate_color(blue))
+        floor = Shape(100,100,generate_color(green))
         floor.set_position([x,500])
 
         ceiling = Shape(100,100,generate_color(blue))
         ceiling.set_position([x,0])
 
     for y in range(100, 500, 100):
-        left = Shape(100,100,generate_color(blue))
+        left = Shape(100,100,generate_color(red))
         left.set_position([0,y])
 
-        right = Shape(100,100,generate_color(blue))
+        right = Shape(100,100,generate_color(white))
         right.set_position([900,y])
 
 
@@ -57,7 +57,7 @@ def tuple_to_array(tuple):
 
 
 def main():
-    renderer = Renderer()
+    renderer = DeferredRenderer()
 
     element_list = generate_elements()
 
@@ -84,14 +84,14 @@ def main():
                 if event.button == 4:
                     if selected_element.is_light():
                         selected_element.set_intensity(selected_element.get_intensity() + 0.05)
-                        if selected_element.get_intensity() > 5: 
+                        if selected_element.get_intensity() > 5:
                             selected_element.set_intensity(5)
                         elif selected_element.get_intensity() < 0:
                             selected_element.set_intensity(0)
                 elif event.button == 5:
                     if selected_element.is_light():
                         selected_element.set_intensity(selected_element.get_intensity() - 0.05)
-                        if selected_element.get_intensity() > 5: 
+                        if selected_element.get_intensity() > 5:
                             selected_element.set_intensity(5)
                         elif selected_element.get_intensity() < 0:
                             selected_element.set_intensity(0)
@@ -112,7 +112,7 @@ def main():
                 selected_element.set_position([selected_element.get_position()[0], selected_element.get_position()[1] - 3])
             elif key[K_DOWN]:
                 selected_element.set_position([selected_element.get_position()[0], selected_element.get_position()[1] + 3])
-        
+
 
         renderer.draw()
 

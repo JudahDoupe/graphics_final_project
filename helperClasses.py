@@ -70,7 +70,7 @@ class Shape(Element):
         self.all_shapes.append(self)
         self.all_elements.append(self)
         self.element_type = "shape"
-        
+
     def is_light(self):
         return False
 
@@ -112,7 +112,7 @@ class DirectionalLight(Element):
         self.element_type = "dir_light"
         self.color = color
         self.intensity = intensity
-        
+
     def is_light(self):
         return True
 
@@ -131,6 +131,12 @@ class DirectionalLight(Element):
     def set_intensity(self, intensity):
         self.intensity = intensity
 
+    def get_color(self):
+        return self.color;
+
+    def set_color(self, color):
+        self.color = color
+
 
 class PointLight(Element):
     all_point_lights = []
@@ -142,7 +148,7 @@ class PointLight(Element):
         self.element_type = "point_light"
         self.color = color
         self.intensity = intensity
-        
+
     def is_light(self):
         return True
 
@@ -157,3 +163,52 @@ class PointLight(Element):
 
     def set_intensity(self, intensity):
         self.intensity = intensity
+
+    def get_color(self):
+        return self.color;
+
+    def set_color(self, color):
+        self.color = color
+
+
+class SpotLight(Element):
+    all_spot_lights = []
+
+    def __init__(self, position, direction, color, intensity):
+        self.position = position
+        self.direction = direction
+        self.all_spot_lights.append(self)
+        self.all_elements.append(self)
+        self.element_type = "point_light"
+        self.color = color
+        self.intensity = intensity
+
+    def is_light(self):
+        return True
+
+    def get_position(self):
+        return self.position;
+
+    def set_position(self, position):
+        self.position = position
+
+    def get_direction(self):
+        return self.direction;
+
+    def get_direction_in_radians(self):
+        return atan2(self.direction[1], self.direction[0])
+
+    def set_direction(self, angle_in_radians):
+        self.direction = [cos(angle_in_radians), sin(angle_in_radians)]
+
+    def get_intensity(self):
+        return self.intensity;
+
+    def set_intensity(self, intensity):
+        self.intensity = intensity
+
+    def get_color(self):
+        return self.color;
+
+    def set_color(self, color):
+        self.color = color
