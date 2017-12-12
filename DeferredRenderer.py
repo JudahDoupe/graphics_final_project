@@ -11,6 +11,8 @@ from helperClasses import *
 
 class DeferredRenderer:
 
+##### GEOMETRY SHADER #####
+
     geomenty_vertex_code = """
         uniform vec2 u_resolution;
 
@@ -19,13 +21,14 @@ class DeferredRenderer:
         attribute vec4 a_color;
 
         uniform vec2 u_translationV;
+        uniform vec2 u_cameraP;
 
         varying vec2 v_positionP;
         varying vec2 v_normalV;
         varying vec4 v_color;
 
         void main() {
-            vec2 positionP = a_positionP + u_translationV;
+            vec2 positionP = a_positionP + u_translationV - (u_cameraP - (u_resolution / 2));
             vec2 clipSpaceP = (((positionP/ u_resolution) * 2 ) - 1 ) * vec2(1, -1);
 
             v_positionP = positionP / u_resolution;
@@ -48,6 +51,9 @@ class DeferredRenderer:
             gl_FragData[2] = v_color;
         }
     """
+
+##### LIGHTING SHADERS #####
+
     lighting_vertex_code = """
         attribute vec2 a_positionP;
 
@@ -62,12 +68,14 @@ class DeferredRenderer:
         uniform float u_LightIntensity;
 
         uniform vec2 u_resolution;
+        uniform vec2 u_cameraP;
         uniform sampler2D gPositionMap;
         uniform sampler2D gColorMap;
         uniform sampler2D gNormalMap;
 
         void main()
         {
+               vec2 WorldCoord = gl_FragCoord.xy - (u_cameraP - (u_resolution / 2));
                vec2 CenteredCoord = (gl_FragCoord.xy - (u_resolution / 2)) * vec2(1,-1);
                vec2 ScreenCoord = CenteredCoord + (u_resolution / 2);
                vec2 TexCoord = gl_FragCoord.xy / u_resolution;
@@ -76,7 +84,8 @@ class DeferredRenderer:
                vec4 Color = texture(gColorMap, TexCoord).xyzw;
                vec2 Normal = (texture(gNormalMap, TexCoord).xy * 2) - 1;
 
-               vec2 LightVector = u_LightPosition - ScreenCoord;
+               vec2 LightPosition = u_LightPosition - (u_cameraP - (u_resolution / 2));
+               vec2 LightVector = LightPosition - ScreenCoord;
                vec2 LightDirection = normalize(LightVector);
                float LightDistance = length( LightVector );
                float LightFraction = dot( Normal, LightDirection);
@@ -92,6 +101,35 @@ class DeferredRenderer:
                }
         }
     """
+    directional_light_fragment_code = """
+        uniform vec4 u_LightColor;
+        uniform vec2 u_LightDirection;
+        uniform float u_LightIntensity;
+
+        uniform vec2 u_resolution;
+        uniform vec2 u_cameraP;
+        uniform sampler2D gColorMap;
+        uniform sampler2D gNormalMap;
+
+        void main()
+        {
+               vec2 WorldCoord = gl_FragCoord.xy - (u_cameraP - (u_resolution / 2));
+               vec2 CenteredCoord = (gl_FragCoord.xy - (u_resolution / 2)) * vec2(1,-1);
+               vec2 ScreenCoord = CenteredCoord + (u_resolution / 2);
+               vec2 TexCoord = gl_FragCoord.xy / u_resolution;
+
+               vec4 Color = texture(gColorMap, TexCoord).xyzw;
+               vec2 Normal = (texture(gNormalMap, TexCoord).xy * 2) - 1;
+
+               vec2 LightDirection = -u_LightDirection;
+               float LightFraction = dot( Normal, LightDirection);
+               vec2 LightReflectedDirection = normalize( Normal - LightDirection * 2);
+
+               vec4 SpecularColor = u_LightColor * pow( max( 0, dot( normalize(-CenteredCoord), LightReflectedDirection )), 10);
+
+               gl_FragColor = Color  * u_LightColor * LightFraction;
+        }
+    """
     spot_light_fragment_code = """
         uniform vec4 u_LightColor;
         uniform vec2 u_LightPosition;
@@ -99,12 +137,14 @@ class DeferredRenderer:
         uniform float u_LightIntensity;
 
         uniform vec2 u_resolution;
+        uniform vec2 u_cameraP;
         uniform sampler2D gPositionMap;
         uniform sampler2D gColorMap;
         uniform sampler2D gNormalMap;
 
         void main()
         {
+               vec2 WorldCoord = gl_FragCoord.xy - (u_cameraP - (u_resolution / 2));
                vec2 CenteredCoord = (gl_FragCoord.xy - (u_resolution / 2)) * vec2(1,-1);
                vec2 ScreenCoord = CenteredCoord + (u_resolution / 2);
                vec2 TexCoord = gl_FragCoord.xy / u_resolution;
@@ -113,7 +153,8 @@ class DeferredRenderer:
                vec4 Color = texture(gColorMap, TexCoord).xyzw;
                vec2 Normal = (texture(gNormalMap, TexCoord).xy * 2) - 1;
 
-               vec2 LightVector = u_LightPosition - ScreenCoord;
+               vec2 LightPosition = u_LightPosition - (u_cameraP - (u_resolution / 2));
+               vec2 LightVector = LightPosition - ScreenCoord;
                vec2 LightDirection = normalize(LightVector);
                float LightDistance = length( LightVector );
                float LightFraction = dot( Normal, LightDirection);
@@ -134,39 +175,13 @@ class DeferredRenderer:
                }
         }
     """
-    directional_light_fragment_code = """
-        uniform vec4 u_LightColor;
-        uniform vec2 u_LightDirection;
-        uniform float u_LightIntensity;
-
-        uniform vec2 u_resolution;
-        uniform sampler2D gColorMap;
-        uniform sampler2D gNormalMap;
-
-        void main()
-        {
-               vec2 CenteredCoord = (gl_FragCoord.xy - (u_resolution / 2)) * vec2(1,-1);
-               vec2 ScreenCoord = CenteredCoord + (u_resolution / 2);
-               vec2 TexCoord = gl_FragCoord.xy / u_resolution;
-
-               vec4 Color = texture(gColorMap, TexCoord).xyzw;
-               vec2 Normal = (texture(gNormalMap, TexCoord).xy * 2) - 1;
-
-               vec2 LightDirection = -u_LightDirection;
-               float LightFraction = dot( Normal, LightDirection);
-               vec2 LightReflectedDirection = normalize( Normal - LightDirection * 2);
-
-               vec4 SpecularColor = u_LightColor * pow( max( 0, dot( normalize(-CenteredCoord), LightReflectedDirection )), 10);
-
-               gl_FragColor = Color  * u_LightColor * LightFraction;
-        }
-    """
 
     def __init__(self):
         pygame.init()
         infoObject = pygame.display.Info()
         self.width  = infoObject.current_w
         self.height = infoObject.current_h
+        self.camera_position = [self.width/2,self.height/2]
         self.surface = pygame.display.set_mode((self.width, self.height), DOUBLEBUF|OPENGL)
 
         self.geomenty_program  = self.create_program(self.geomenty_vertex_code, self.geomenty_fragment_code)
@@ -179,13 +194,13 @@ class DeferredRenderer:
 
 
     def draw(self):
+        glTranslatef(100,0,0)
         self.render_geometry()
 
+        self.geomenty_buffer.bind_for_reading()
         glEnable(GL_BLEND);
         glBlendEquation(GL_FUNC_ADD);
         glBlendFunc(GL_ONE, GL_ONE);
-
-        self.geomenty_buffer.bind_for_reading()
         glClear(GL_COLOR_BUFFER_BIT);
 
         self.render_point_lights()
@@ -195,45 +210,48 @@ class DeferredRenderer:
         pygame.display.flip()
         pygame.time.wait(10)
 
+
     def render_geometry(self):
+
         self.geomenty_buffer.bind()
-        glLoadIdentity()
+        glUseProgram(self.geomenty_program)
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         glDisable(GL_BLEND);
 
-        glUseProgram(self.geomenty_program)
 
-        glUniform2f(glGetUniformLocation(self.geomenty_program, "u_resolution"), self.width, self.height)
+        res_loc = glGetUniformLocation(self.geomenty_program, "u_resolution")
+        camera_loc = glGetUniformLocation(self.geomenty_program, 'u_cameraP')
+
+        glUniform2f(res_loc, self.width, self.height)
+        glUniform2fv(camera_loc, 1, self.camera_position)
 
         for shape in Shape.all_shapes:
+
             position_buffer = shape.pos_vbo()
-            position_buffer.bind()
-            position_loc = glGetAttribLocation(self.geomenty_program, 'a_positionP')
-            glEnableVertexAttribArray(position_loc)
-            glVertexAttribPointer(position_loc, 2, GL_FLOAT, False, 0, position_buffer )
-
             color_buffer = shape.color_vbo()
-            color_buffer.bind()
-            color_loc = glGetAttribLocation(self.geomenty_program, 'a_color')
-            glEnableVertexAttribArray(color_loc)
-            glVertexAttribPointer(color_loc, 4, GL_FLOAT, False, 0, color_buffer )
-
             normal_buffer = shape.normal_vbo()
-            normal_buffer.bind()
-            normal_loc = glGetAttribLocation(self.geomenty_program, 'a_normalV')
-            glEnableVertexAttribArray(normal_loc)
-            glVertexAttribPointer(normal_loc, 2, GL_FLOAT, False, 0, normal_buffer )
 
-            glUniform2fv(glGetUniformLocation(self.geomenty_program, 'u_translationV'), 1, shape.get_position())
+            self.assign_attribute(self.geomenty_program, 'a_positionP', position_buffer, 2)
+            self.assign_attribute(self.geomenty_program, 'a_color', color_buffer, 4)
+            self.assign_attribute(self.geomenty_program, 'a_normalV', normal_buffer, 2)
+
+            transform_loc = glGetUniformLocation(self.geomenty_program, 'u_translationV')
+            glUniform2fv(transform_loc, 1, shape.get_position())
 
             glDrawArrays(GL_TRIANGLES, 0, shape.num_tris() * 3)
 
         self.geomenty_buffer.unbind()
 
+
     def render_point_lights(self):
+
         glUseProgram(self.point_light_program)
 
-        glUniform2f(glGetUniformLocation(self.point_light_program, "u_resolution"), self.width, self.height)
+        res_loc = glGetUniformLocation(self.point_light_program, "u_resolution")
+        camera_loc = glGetUniformLocation(self.point_light_program, 'u_cameraP')
+
+        glUniform2f(res_loc, self.width, self.height)
+        glUniform2fv(camera_loc, 1, self.camera_position)
 
         #set texture data
         glUniform1i(glGetUniformLocation(self.point_light_program, "gPositionMap"), 0);
@@ -241,7 +259,7 @@ class DeferredRenderer:
         glUniform1i(glGetUniformLocation(self.point_light_program, "gColorMap"), 2);
 
         for light in PointLight.all_point_lights:
-            #set light data
+
             position_loc = glGetUniformLocation(self.point_light_program, 'u_LightPosition')
             color_loc = glGetUniformLocation(self.point_light_program, 'u_LightColor')
             intensity_loc = glGetUniformLocation(self.point_light_program, 'u_LightIntensity')
@@ -250,18 +268,19 @@ class DeferredRenderer:
             glUniform4fv(color_loc, 1, np.array(light.get_color(),'f'))
             glUniform1f(intensity_loc, np.array(light.get_intensity(),'f'))
 
-            #render over entire screen
             quad = vbo.VBO(np.array([-1,-1, -1,1, 1,-1, 1,1, -1,1, 1,-1],'f'))
-            quad.bind()
-            quadLoc = glGetAttribLocation(self.point_light_program, 'a_positionP')
-            glEnableVertexAttribArray(quadLoc)
-            glVertexAttribPointer(quadLoc, 2, GL_FLOAT, False, 0, quad )
+            self.assign_attribute(self.point_light_program, 'a_positionP', quad, 2)
+
             glDrawArrays(GL_TRIANGLES, 0, 6)
 
     def render_spot_lights(self):
         glUseProgram(self.spot_light_program)
 
-        glUniform2f(glGetUniformLocation(self.spot_light_program, "u_resolution"), self.width, self.height)
+        res_loc = glGetUniformLocation(self.spot_light_program, "u_resolution")
+        camera_loc = glGetUniformLocation(self.spot_light_program, 'u_cameraP')
+
+        glUniform2f(res_loc, self.width, self.height)
+        glUniform2fv(camera_loc, 1, self.camera_position)
 
         #set texture data
         glUniform1i(glGetUniformLocation(self.spot_light_program, "gPositionMap"), 0);
@@ -269,7 +288,7 @@ class DeferredRenderer:
         glUniform1i(glGetUniformLocation(self.spot_light_program, "gColorMap"), 2);
 
         for light in SpotLight.all_spot_lights:
-            #set light data
+
             position_loc = glGetUniformLocation(self.spot_light_program, 'u_LightPosition')
             direction_loc = glGetUniformLocation(self.spot_light_program, 'u_LightDirection')
             color_loc = glGetUniformLocation(self.spot_light_program, 'u_LightColor')
@@ -280,25 +299,25 @@ class DeferredRenderer:
             glUniform4fv(color_loc, 1, np.array(light.get_color(),'f'))
             glUniform1f(intensity_loc, np.array(light.get_intensity(),'f'))
 
-            #render over entire screen
             quad = vbo.VBO(np.array([-1,-1, -1,1, 1,-1, 1,1, -1,1, 1,-1],'f'))
-            quad.bind()
-            quadLoc = glGetAttribLocation(self.spot_light_program, 'a_positionP')
-            glEnableVertexAttribArray(quadLoc)
-            glVertexAttribPointer(quadLoc, 2, GL_FLOAT, False, 0, quad )
+            self.assign_attribute(self.spot_light_program, 'a_positionP', quad, 2)
+
             glDrawArrays(GL_TRIANGLES, 0, 6)
 
     def render_directional_lights(self):
         glUseProgram(self.directional_light_program)
 
-        glUniform2f(glGetUniformLocation(self.directional_light_program, "u_resolution"), self.width, self.height)
+        res_loc = glGetUniformLocation(self.directional_light_program, "u_resolution")
+        camera_loc = glGetUniformLocation(self.directional_light_program, 'u_cameraP')
 
-        #set texture data
+        glUniform2f(res_loc, self.width, self.height)
+        glUniform2fv(camera_loc, 1, self.camera_position)
+
         glUniform1i(glGetUniformLocation(self.directional_light_program, "gNormalMap"), 1);
         glUniform1i(glGetUniformLocation(self.directional_light_program, "gColorMap"), 2);
 
         for light in DirectionalLight.all_dir_lights:
-            #set light data
+
             direction_loc = glGetUniformLocation(self.directional_light_program, 'u_LightDirection')
             color_loc = glGetUniformLocation(self.directional_light_program, 'u_LightColor')
             intensity_loc = glGetUniformLocation(self.directional_light_program, 'u_LightIntensity')
@@ -307,13 +326,12 @@ class DeferredRenderer:
             glUniform4fv(color_loc, 1, np.array(light.get_color(),'f'))
             glUniform1f(intensity_loc, np.array(light.get_intensity(),'f'))
 
-            #render over entire screen
             quad = vbo.VBO(np.array([-1,-1, -1,1, 1,-1, 1,1, -1,1, 1,-1],'f'))
-            quad.bind()
-            quadLoc = glGetAttribLocation(self.directional_light_program, 'a_positionP')
-            glEnableVertexAttribArray(quadLoc)
-            glVertexAttribPointer(quadLoc, 2, GL_FLOAT, False, 0, quad )
+            self.assign_attribute(self.directional_light_program, 'a_positionP', quad, 2)
+
             glDrawArrays(GL_TRIANGLES, 0, 6)
+
+##### BOILER PLATE FUNCTIONS #####
 
     def create_program(self, vert_shader, frag_shader):
         program  = glCreateProgram()
@@ -333,6 +351,12 @@ class DeferredRenderer:
 
         return program
 
+    def assign_attribute(self, program, name, vbo, size):
+        vbo.bind()
+        loc = glGetAttribLocation(program, name)
+        glEnableVertexAttribArray(loc)
+        glVertexAttribPointer(loc, size, GL_FLOAT, False, 0, vbo )
+        vbo.unbind()
 
 
 class GBuffer:
@@ -367,6 +391,56 @@ class GBuffer:
         glBindTexture(GL_TEXTURE_2D, self.normal_texture)
         glActiveTexture(GL_TEXTURE0 + 2)
         glBindTexture(GL_TEXTURE_2D, self.color_texture)
+
+
+    def unbind(self):
+        glBindFramebuffer(GL_FRAMEBUFFER, 0)
+
+    def add_texture(self, index):
+        texture = glGenTextures(1)
+        glPixelStorei(GL_PACK_ALIGNMENT,1)
+        glBindTexture(GL_TEXTURE_2D, texture)
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
+
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, self.width, self.height, 0, GL_RGBA, GL_FLOAT, None)
+
+        self.bind()
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + index, GL_TEXTURE_2D, texture, 0)
+        self.unbind()
+
+        return texture
+
+
+class ShadowBuffer:
+
+    def __init__(self):
+        self.width = 256
+        self.height = 256
+
+        self.fbo = glGenFramebuffers(1)
+
+        self.occlusion_texture = self.add_texture(0)
+
+        self.bind()
+        glDrawBuffers(1, [GL_COLOR_ATTACHMENT0])
+
+        if glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE:
+            print("Failed To Create G-Buffer");
+
+        self.unbind()
+
+    def bind(self):
+        glBindFramebuffer(GL_FRAMEBUFFER, self.fbo)
+
+    def bind_for_reading(self):
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+
+        glActiveTexture(GL_TEXTURE0)
+        glBindTexture(GL_TEXTURE_2D, self.occlusion_texture)
 
 
     def unbind(self):

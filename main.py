@@ -29,7 +29,7 @@ def generate_color(color):
 
 
 def generate_elements():
-    #dir_light = DirectionalLight([0.4,0.6],generate_color(white), 1)
+    dir_light = DirectionalLight([0.4,0.6],generate_color(white), 1)
     point_light = PointLight([250,250],generate_color(white),1)
     spot_light = SpotLight([750,250], [0.0,1.0], generate_color(white),1)
 
@@ -96,7 +96,7 @@ def main():
                         elif selected_element.get_intensity() < 0:
                             selected_element.set_intensity(0)
         key = pygame.key.get_pressed()
-        if selected_element.element_type == "dir_light":
+        if selected_element.element_type == "dir_light" or selected_element.element_type == "spot_light":
             if key[K_RIGHT]:
                 dir_var = selected_element.get_direction_in_radians() - 0.2 % 6.2
                 selected_element.set_direction(dir_var)

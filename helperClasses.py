@@ -179,7 +179,7 @@ class SpotLight(Element):
         self.direction = direction
         self.all_spot_lights.append(self)
         self.all_elements.append(self)
-        self.element_type = "point_light"
+        self.element_type = "spot_light"
         self.color = color
         self.intensity = intensity
 
