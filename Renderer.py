@@ -215,3 +215,38 @@ class Renderer:
 
         glUniform2fv(positionLocation, 16, np.array(positions,'f'))
         glUniform1fv(intensityLocation, 16, np.array(intensities,'f'));
+
+
+
+
+    shadow_fragment_code = """
+        uniform sampler2D occlusion_texture;
+        uniform vec2 u_resolution;
+        uniform vec2 u_lightPosition;
+        uniform vec2 u_cameraP;
+
+        void main(void) {
+            float min_distance = 1.0;
+
+            vec2 TexCoord = gl_FragCoord.xy / u_resolution;
+            vec2 LightPosition = u_lightPosition - (u_cameraP - (u_resolution / 2));
+            vec2 LightCoord = LightPosition / u_resolution;
+
+            for (float y=0.0; y < u_resolution.y; y+=1.0) {
+
+                float distance = y / u_resolution.y;
+
+                float theta = 3.14 * 1.5 + (TexCoord.x * 2 - 1) * 3.14;
+                float r = (1.0 + (distance * 2 - 1)) * 0.5;
+                vec2 coord = vec2(-r * sin(theta), -r * cos(theta)) / 2.0 + LightCoord;
+                coord = clamp(coord, vec2(0,0), vec2(1,1));
+
+                vec2 data = texture2D(occlusion_texture, coord).xy;
+
+                if (data != vec2(0,0)) {
+                    min_distance = min(min_distance, distance);
+                }
+            }
+            gl_FragData[3] = vec4(vec3(distance), 1.0);
+        }
+    """
