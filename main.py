@@ -29,7 +29,7 @@ def generate_color(color):
 
 
 def generate_elements():
-    dir_light = DirectionalLight([0.4,0.6],generate_color(white), 1)
+    #dir_light = DirectionalLight([0.4,0.6],generate_color(white), 1)
     point_light = PointLight([250,250],generate_color(white),1)
     spot_light = SpotLight([750,250], [0.0,1.0], generate_color(white),1)
 

@@ -72,7 +72,6 @@ class DeferredRenderer:
         uniform sampler2D gPositionMap;
         uniform sampler2D gColorMap;
         uniform sampler2D gNormalMap;
-        uniform sampler2D gShadowMap;
 
         void main()
         {
@@ -95,19 +94,10 @@ class DeferredRenderer:
 
                vec4 SpecularColor = u_LightColor * pow( max( 0, dot( normalize(-CenteredCoord), LightReflectedDirection )), 10);
 
-
-
-               float visible = 0;
-               float MaxDistance = texture(gShadowMap, TexCoord).x * u_resolution.y;
-               if( LightDistance <= MaxDistance){
-                   visible = 1;
-               }
-
-
                if(WorldPos == vec2(0,0)){
-                   gl_FragColor = u_LightColor * Attenuation * visible;
+                   gl_FragColor = u_LightColor * Attenuation;
                }else{
-                   gl_FragColor = (Color + SpecularColor) * u_LightColor * LightFraction * Attenuation * visible;
+                   gl_FragColor = (Color + SpecularColor) * u_LightColor * LightFraction * Attenuation;
                }
         }
     """
@@ -151,7 +141,6 @@ class DeferredRenderer:
         uniform sampler2D gPositionMap;
         uniform sampler2D gColorMap;
         uniform sampler2D gNormalMap;
-        uniform sampler2D gShadowMap;
 
         void main()
         {
@@ -176,10 +165,7 @@ class DeferredRenderer:
                vec4 SpecularColor = u_LightColor * pow( max( 0, dot( normalize(-CenteredCoord), LightReflectedDirection )), 10);
 
                float visible = 0;
-               float theta = atan(LightDirection.y, LightDirection.x);
-               float coord = (theta + 3.14) / (2.0*3.14);
-               float MaxDistance = texture(gShadowMap, vec2(coord,0)).x * u_resolution.y;
-               if( dot( LightDirection, -u_LightDirection) > 0.75 || LightDistance <= MaxDistance){
+               if( dot( LightDirection, -u_LightDirection) > 0.75 ){
                    visible = 1;
                }
 
@@ -191,47 +177,13 @@ class DeferredRenderer:
         }
     """
 
-##### SHADOW SHADER #####
-
-    shadow_fragment_code  = """
-        uniform sampler2D occlusion_texture;
-        uniform vec2 u_resolution;
-        uniform vec2 u_lightPosition;
-        uniform vec2 u_cameraP;
-
-        void main(void) {
-            float min_distance = 1.0;
-
-            vec2 TexCoord = gl_FragCoord.xy / u_resolution;
-            vec2 LightPosition = u_lightPosition - (u_cameraP - (u_resolution / 2));
-            vec2 LightCoord = LightPosition / u_resolution;
-
-            for (float y=0.0; y < u_resolution.y; y+=1.0) {
-
-                float distance = y / u_resolution.y;
-
-                float theta = 3.14 * 1.5 + (TexCoord.x * 2 - 1) * 3.14;
-                float r = (1.0 + (distance * 2 - 1)) * 0.5;
-                vec2 coord = vec2(-r * sin(theta) * 0.5, -r * cos(theta) * 0.5) + LightCoord;
-                coord = clamp(coord, vec2(0,0), vec2(1,1));
-
-                vec2 data = texture2D(occlusion_texture, coord).xy;
-
-                if (data != vec2(0,0)) {
-                    min_distance = min(min_distance, distance);
-                }
-            }
-            gl_FragData[3] = vec4(vec3(min_distance), 1.0);
-        }
-    """
-
 
 
     def __init__(self):
         pygame.init()
         infoObject = pygame.display.Info()
-        self.width  = infoObject.current_w
-        self.height = infoObject.current_h
+        self.width  = 1000
+        self.height = 600
         self.camera_position = [self.width/2,self.height/2]
         self.surface = pygame.display.set_mode((self.width, self.height), DOUBLEBUF|OPENGL)
 
@@ -239,7 +191,6 @@ class DeferredRenderer:
         self.point_light_program  = self.create_program(self.lighting_vertex_code, self.point_light_fragment_code)
         self.spot_light_program  = self.create_program(self.lighting_vertex_code, self.spot_light_fragment_code)
         self.directional_light_program  = self.create_program(self.lighting_vertex_code, self.directional_light_fragment_code)
-        self.shadow_program  = self.create_program(self.lighting_vertex_code, self.shadow_fragment_code)
 
         self.geomenty_buffer = GBuffer(self.width, self.height)
 
@@ -268,7 +219,6 @@ class DeferredRenderer:
         glUseProgram(self.geomenty_program)
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         glDisable(GL_BLEND);
-
 
         res_loc = glGetUniformLocation(self.geomenty_program, "u_resolution")
         camera_loc = glGetUniformLocation(self.geomenty_program, 'u_cameraP')
@@ -310,9 +260,6 @@ class DeferredRenderer:
 
         for light in PointLight.all_point_lights:
 
-            self.render_shadow_map(light.get_position())
-            glUseProgram(self.point_light_program)
-
             position_loc = glGetUniformLocation(self.point_light_program, 'u_LightPosition')
             color_loc = glGetUniformLocation(self.point_light_program, 'u_LightColor')
             intensity_loc = glGetUniformLocation(self.point_light_program, 'u_LightIntensity')
@@ -343,9 +290,6 @@ class DeferredRenderer:
         glUniform1i(glGetUniformLocation(self.spot_light_program, "gShadowMap"), 3);
 
         for light in SpotLight.all_spot_lights:
-
-            self.render_shadow_map(light.get_position())
-            glUseProgram(self.spot_light_program)
 
             position_loc = glGetUniformLocation(self.spot_light_program, 'u_LightPosition')
             direction_loc = glGetUniformLocation(self.spot_light_program, 'u_LightDirection')
@@ -390,26 +334,6 @@ class DeferredRenderer:
             glDrawArrays(GL_TRIANGLES, 0, 6)
 
 
-    def render_shadow_map(self, light_pos):
-        self.geomenty_buffer.bind()
-        glUseProgram(self.shadow_program)
-
-        res_loc = glGetUniformLocation(self.shadow_program, "u_resolution")
-        pos_loc = glGetUniformLocation(self.shadow_program, "u_lightPosition")
-        camera_loc = glGetUniformLocation(self.directional_light_program, 'u_cameraP')
-
-        glUniform2f(res_loc, self.width, self.height)
-        glUniform2fv(camera_loc, 1, self.camera_position)
-        glUniform2fv(pos_loc, 1, light_pos)
-        glUniform1i(glGetUniformLocation(self.point_light_program, "occlusion_texture"), 0);
-
-        quad = vbo.VBO(np.array([-1,-1, -1,1, 1,-1, 1,1, -1,1, 1,-1],'f'))
-        self.assign_attribute(self.point_light_program, 'a_positionP', quad, 2)
-
-        glDrawArrays(GL_TRIANGLES, 0, 6)
-        self.geomenty_buffer.unbind()
-
-
 
 ##### BOILER PLATE FUNCTIONS #####
 
@@ -450,10 +374,9 @@ class GBuffer:
         self.position_texture = self.add_texture(0)
         self.normal_texture = self.add_texture(1)
         self.color_texture = self.add_texture(2)
-        self.shadow_texture = self.add_texture(3)
 
         self.bind()
-        glDrawBuffers(3, [GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3])
+        glDrawBuffers(3, [GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2])
 
         if glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE:
             print("Failed To Create G-Buffer");
@@ -472,8 +395,6 @@ class GBuffer:
         glBindTexture(GL_TEXTURE_2D, self.normal_texture)
         glActiveTexture(GL_TEXTURE0 + 2)
         glBindTexture(GL_TEXTURE_2D, self.color_texture)
-        glActiveTexture(GL_TEXTURE0 + 3)
-        glBindTexture(GL_TEXTURE_2D, self.shadow_texture)
 
 
     def unbind(self):
